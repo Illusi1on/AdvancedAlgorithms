@@ -1,0 +1,132 @@
+#include<iostream>
+#include<vector>
+#include<algorithm>
+#include<cstring>
+#include<queue>
+#define MAXN 400001
+
+using namespace std;
+
+int R, C, P, K, h, t, fa[MAXN], siz[MAXN], phi[MAXN], dmin[MAXN], que[MAXN], frt[MAXN], pot[1000], exedge[MAXN], dist[MAXN], ans, ecnt;
+struct Edge{
+    int to, w, next;
+}edge[MAXN*4];
+
+bool cmp1(const vector<int> &a, const vector<int> &b){
+    return a[0] < b[0];
+}
+
+int getfa(int x){
+    if(fa[x]==x) return x;
+    fa[x] = getfa(fa[x]);
+    return fa[x];
+}
+
+void merge(int x, int y){
+    x = getfa(x);
+    y = getfa(y);
+    if (siz[x]>siz[y]) {
+        siz[x] += siz[y];
+        fa[y] = x;
+    }
+    else{
+        siz[y] += siz[x];
+        fa[x] = y;
+    }
+}
+
+void update_value(int x, int d, int v){
+    if (phi[x]>0) {
+        if (d == dmin[x] && v < phi[x])
+            phi[x] = v;
+        return;
+    }
+    dmin[x] = d;
+    phi[x] = v;
+    que[t++] = x;
+}
+
+void check_edge(int x, int y){
+    int w = dmin[x]+dmin[y]+abs(phi[x]-phi[y]);
+    edge[ecnt].to = y;
+    edge[ecnt].w = w;
+    edge[ecnt].next = frt[x];
+    frt[x] = ecnt;
+    ecnt++;
+    edge[ecnt].to = x;
+    edge[ecnt].w = w;
+    edge[ecnt].next = frt[y];
+    frt[y] = ecnt;
+    ecnt++;
+}
+
+
+int main(){
+    int x, y, v, m, n, dx[4] = {-1, 0, 1, 0}, dy[4] = {0, 1, 0, -1};
+    bool visited[MAXN];
+
+    cin>>R>>C>>P>>K;
+    for(int i=1;i<=R*C;i++){
+        fa[i] = i;
+        siz[i] = 1;
+        phi[i] = 0;
+        dmin[i] = MAXN;
+        frt[i] = -1;
+    }
+    for(int i=0;i<P;i++) {
+        cin>>x>>y>>v;
+        pot[i] = (x-1)*C+y;
+        que[i] = pot[i];
+        phi[(x-1)*C+y] = v;
+        dmin[(x-1)*C+y] = 0;
+    }
+    memset(exedge, 0, sizeof(exedge));
+    for(int i=0;i<K;i++) {
+        cin>>x>>y>>m>>n;
+        exedge[(x - 1) * C + y] = (m - 1) * C + n;
+        exedge[(m - 1) * C + n] = (x - 1) * C + y;
+    }
+    h = 0;
+    t = P;
+    while(h<t){
+        x = (que[h]-1)/C+1;
+        y = (que[h]-1)%C+1;
+        for(int i=0;i<4;i++){
+            m = x+dx[i];
+            n = y+dy[i];
+            if (m>=1&&m<=R&&n>=1&&n<=C) update_value((m-1)*C+n, dmin[que[h]]+1, phi[que[h]]);
+        }
+        if (exedge[que[h]]>0)
+            update_value(exedge[que[h]], dmin[que[h]]+1, phi[que[h]]);
+        h++;
+    }
+    ans = 0;
+    ecnt = 0;
+    for(int i=1;i<=R;i++)
+        for(int j=1;j<=C;j++){
+            if(i<R) check_edge((i-1)*C+j, i*C+j);
+            if(j<C) check_edge((i-1)*C+j, (i-1)*C+j+1);
+            if(exedge[(i-1)*C+j]>0) check_edge((i-1)*C+j, exedge[(i-1)*C+j]);
+        }
+    memset(dist, 0x1f, sizeof(dist));
+    memset(visited, 0, sizeof(visited));
+    priority_queue<pair<int,int> > pq;
+    pq.push(make_pair(0, 1));
+    dist[1] = 0;
+    while(!pq.empty()){
+        int u = pq.top().second;
+        pq.pop();
+        ans += dist[u];
+        if (!visited[u])
+            for(int j=frt[u];j!=-1;j=edge[j].next){
+                int v = edge[j].to, w = edge[j].w;
+                if (!visited[v]&&w<dist[v]){
+                    dist[v] = w;
+                    pq.push(make_pair(-w, v));
+                }
+            }
+        visited[u] = true;
+        dist[u] = 0;
+    }
+    printf("%d\n", ans);
+}
