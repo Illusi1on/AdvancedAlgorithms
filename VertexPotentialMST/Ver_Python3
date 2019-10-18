@@ -1,0 +1,138 @@
+import sys
+
+
+class Edge:
+    def __init__(self, to, next):
+        self.to = to
+        self.next = next
+MAXN = sys.maxsize
+MAXX = 400001
+dmin = [MAXN] * MAXX
+phi = [0] * MAXX
+frt = [0] * MAXX
+que = [0] * MAXX
+edge = [Edge(0, -1) for i in range(MAXX*4)]
+ecnt = 0
+
+def create_edge(x, y):
+    def cedge(x, y):
+        global ecnt
+        edge[ecnt].to = y
+        edge[ecnt].next = frt[x]
+        frt[x] = ecnt
+        ecnt += 1
+    cedge(x, y)
+    cedge(y, x)
+
+
+def read_data():
+    global P
+    R, C, P, K = map(int, sys.stdin.readline().strip().split())
+    for i in range(1, R*C+1):
+        phi[i] = 0
+        dmin[i] = MAXN
+        frt[i] = -1
+    for i in range(P):
+        x, y, v = map(int, sys.stdin.readline().strip().split())
+        que[i] = (x-1)*C+y
+        phi[(x-1)*C+y] = v
+        dmin[(x-1)*C+y] = 0
+    for i in range(K):
+        x, y, m, n = map(int, sys.stdin.readline().strip().split())
+        create_edge((x-1)*C+y, (m-1)*C+n)
+    for i in range(1, R*C+1):
+        if i%C:
+            create_edge(i, i+1)
+        if i<=(R-1)*C:
+            create_edge(i, i+C)
+
+
+def bfs():
+    global P
+    head = 0
+    tail = P
+    while head<tail:
+        u = que[head]
+        i = frt[u]
+        while i>-1:
+            v = edge[i].to
+            if phi[v]>0:
+                if (dmin[u]+1==dmin[v] and phi[u] < phi[v]):
+                    phi[v] = phi[u]
+            else:
+                dmin[v] = dmin[u]+1
+                phi[v] = phi[u]
+                que[tail] = v
+                tail += 1
+            i = edge[i].next
+        head += 1
+
+def swap(heap, i, j):
+    tmp = heap[i]
+    heap[i] = heap[j]
+    heap[j] = tmp
+
+def check_up(heap, i):
+    if i==0:
+        return
+    j = (i-1)//2
+    if heap[j]>heap[i]:
+        swap(heap, i, j)
+        check_up(heap, j)
+
+def check_down(heap, i):
+    j = i*2+1
+    if j>=len(heap):
+        return
+    if j<len(heap)-1 and heap[j]>heap[j+1]:
+        j += 1
+    if heap[j]<heap[i]:
+        swap(heap, i, j)
+        check_down(heap, j)
+
+
+def hpush(heap, item):
+    heap.append(item)
+    check_up(heap, len(heap)-1)
+
+
+def hpop(heap):
+    lst = heap.pop()
+    if heap:
+        tmp = heap[0]
+        heap[0] = lst
+        check_down(heap, 0)
+        return tmp
+    return lst
+
+
+def prim():
+    def calc(u, v):
+        return dmin[u]+dmin[v]+abs(phi[u]-phi[v])
+    h = []
+    h.append((0, 1))
+    dist = [MAXN] * MAXX
+    visited = [False] * MAXX
+    dist[1] = 0
+    ans = 0
+    while(len(h)):
+        u = hpop(h)[-1]
+        if visited[u]:
+            continue
+        visited[u] = True
+        ans += dist[u]
+        i = frt[u]
+        while i>-1:
+            v = edge[i].to
+            w = calc(u, v)
+            if (w<dist[v]):
+                dist[v] = w
+                hpush(h, (w, v))
+            i = edge[i].next
+    print(ans)
+
+
+if __name__=='__main__':
+    read_data()
+    bfs()
+    prim()
